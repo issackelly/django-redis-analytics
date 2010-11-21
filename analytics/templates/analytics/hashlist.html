@@ -1,0 +1,105 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}{% if not is_popup %}
+<div class="breadcrumbs">
+     <a href="../../../">Home</a> &rsaquo;
+     <a href="../../">Analytics Home</a> &rsaquo; 
+     Analytics
+</div>
+{% endif %}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.4.4.min.js"></script>
+<!--[if IE]><script language="javascript" type="text/javascript" src="{{ STATIC_URL }}js/flot/excanvas.min.js"></script><![endif]--> 
+
+<script type="text/javascript" src="{{ STATIC_URL }}js/flot/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="{{STATIC_URL}}js/flot/jquery.flot.selection.js"></script> 
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+<h1>In the last Month</h1>
+<div id="placeholder" style="width:600px;height:300px;"></div> 
+<div id="overview" style="margin-left:50px;margin-top:20px;width:400px;height:50px"></div> 
+
+<div id="pages">
+<h1>Pages Visited</h1>
+<dl>
+    {% for key in paths %}
+        <dt>{{key.0}}</dt><dd>{{key.1}} views</dd>
+    {% endfor %}
+</dl>
+</div>
+
+<div id="pages">
+<h1>Referrers</h1>
+<dl>
+    {% for key in refer_sites.items %}
+        <dt>{{key.1.site}}</dt><dd>{{key.1.count}} views</dd>
+    {% endfor %}
+</dl>
+</div>
+
+</div>
+<script type="text/javascript">
+$(function () {
+    d = {{points}};
+    d1 = {{refer_points}};
+    // helper for returning the weekends in a period
+    function weekendAreas(axes) {
+        var markings = [];
+        var d = new Date(axes.xaxis.min);
+        // go to the first Saturday
+        d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 1) % 7))
+        d.setUTCSeconds(0);
+        d.setUTCMinutes(0);
+        d.setUTCHours(0);
+        var i = d.getTime();
+        do {
+            // when we don't set yaxis, the rectangle automatically
+            // extends to infinity upwards and downwards
+            markings.push({ xaxis: { from: i, to: i + 2 * 24 * 60 * 60 * 1000 } });
+            i += 7 * 24 * 60 * 60 * 1000;
+        } while (i < axes.xaxis.max);
+ 
+        return markings;
+    }
+    
+    var options = {
+        xaxis: { mode: "time" },
+        selection: { mode: "x" },
+        grid: { markings: weekendAreas }
+    };
+    
+    var plot = $.plot($("#placeholder"), [d], options);
+    
+    var overview = $.plot($("#overview"), [d], {
+        series: {
+            lines: { show: true, lineWidth: 1 },
+            shadowSize: 0
+        },
+        xaxis: { ticks: [], mode: "time" },
+        yaxis: { ticks: [], min: 0, autoscaleMargin: 0.1 },
+        selection: { mode: "x", color: "#666666" }
+    });
+ 
+    // now connect the two
+    
+    $("#placeholder").bind("plotselected", function (event, ranges) {
+        // do the zooming
+        plot = $.plot($("#placeholder"), [d],
+                      $.extend(true, {}, options, {
+                          xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+                      }));
+ 
+        // don't fire event on the overview to prevent eternal loop
+        overview.setSelection(ranges, true);
+    });
+    
+    $("#overview").bind("plotselected", function (event, ranges) {
+        plot.setSelection(ranges);
+    });
+});
+</script>
+{% endblock %}

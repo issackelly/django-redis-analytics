@@ -66,7 +66,6 @@ class TrackAdmin(admin.ModelAdmin):
             site_keys = [key + ":site" for key in refer_keys]
             count_keys = [key + ":count" for key in refer_keys]
             sites = r.mget(site_keys)
-            print sites
             counts = r.mget(count_keys)
             for key in refer_keys:
                 pieces = key.split(":")
